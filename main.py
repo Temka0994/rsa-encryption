@@ -8,13 +8,14 @@ from datetime import datetime, timedelta
 N = 10  # макс користувачів
 a = 4  # коефіцієнт в F(x) = e^(a*x)
 T = 5  # час життя токена у хвилинах
+R = 12 # кількість необхідних цифр в ключах
 # ----------------------------------------------------
 
 NAMEUSER_FILE = 'nameuser.txt'
 USBOOK_FILE = 'us_book.txt'
 ASK_FILE = 'ask.txt'
 OUT_FILE = 'out.txt'
-PRIMES_FILE = 'primes-to-100k.txt'
+PRIMES_FILE = 'primes-to-1m.txt'
 PUBLIC_KEY_FILE = 'public_keys.txt'
 PRIVATE_KEY_FILE = 'private_keys.txt'
 
@@ -283,39 +284,80 @@ def chooseE(totient):
             return e
 
 
+def num_decimal_digits(n: int) -> int:
+    """Повертає кількість десяткових цифр в n (n > 0)."""
+    return len(str(n))
+
 def choose_keys():
     """
-    Використовує primes-to-100k.txt, обирає два простих числа
-    і записує public_keys.txt та private_keys.txt (n,e) та (n,d)
+    Обирає p, q з PRIMES_FILE такі, щоб n = p*q мав рівно R десяткових знаків.
+    Записує public_keys.txt (n, e) та private_keys.txt (n, d).
     """
     if not os.path.exists(PRIMES_FILE):
-        print(f"Файл з простими числами {PRIMES_FILE} не знайдено. Помістіть його поряд з програмою.")
+        print(f"Файл з простими числами {PRIMES_FILE} не знайдено.")
         return False
 
-    lines = open(PRIMES_FILE, 'r', encoding='utf-8').read().splitlines()
-    max_idx = max(0, len(lines) - 1)
-    rand1 = random.randint(100, min(300, max_idx))
-    rand2 = random.randint(100, min(300, max_idx))
-    prime1 = int(lines[rand1])
-    prime2 = int(lines[rand2])
+    with open(PRIMES_FILE, 'r', encoding='utf-8') as f:
+        primes = [int(line.strip()) for line in f if line.strip().isdigit()]
+    primes.sort()
 
-    n = prime1 * prime2
-    totient = (prime1 - 1) * (prime2 - 1)
+    if len(primes) < 2:
+        print("Недостатньо простих чисел у файлі.")
+        return False
+
+    lower = 10**(R - 1)
+    upper = 10**R - 1
+
+    indices = list(range(len(primes)))
+    random.shuffle(indices)
+
+    found = False
+    p = q = None
+
+    for idx in indices:
+        p_candidate = primes[idx]
+        q_min = (lower + p_candidate - 1) // p_candidate
+        q_max = upper // p_candidate
+        if q_min > q_max:
+            continue
+
+        possible_q = [q for q in primes if q_min <= q <= q_max and q != p_candidate]
+        if possible_q:
+            q_candidate = random.choice(possible_q)
+            p, q = p_candidate, q_candidate
+            found = True
+            break
+
+    attempts = 0
+    while not found and attempts < 5000:
+        p_candidate = random.choice(primes)
+        q_candidate = random.choice(primes)
+        if p_candidate == q_candidate:
+            attempts += 1
+            continue
+        n_candidate = p_candidate * q_candidate
+        if num_decimal_digits(n_candidate) == R:
+            p, q = p_candidate, q_candidate
+            found = True
+            break
+        attempts += 1
+
+    if not found:
+        print(f"Не вдалося підібрати p і q для {R} цифр. Будуть використані останні два простих.")
+        p, q = primes[-1], primes[-2]
+
+    n = p * q
+    totient = (p - 1) * (q - 1)
     e = chooseE(totient)
-
-    g, x, y = xgcd(e, totient)
-    if x < 0:
-        d = x + totient
-    else:
-        d = x
+    g, x, _ = xgcd(e, totient)
+    d = x + totient if x < 0 else x
 
     with open(PUBLIC_KEY_FILE, 'w', encoding='utf-8') as f:
-        f.write(str(n) + '\n')
-        f.write(str(e) + '\n')
+        f.write(f"{n}\n{e}\n")
     with open(PRIVATE_KEY_FILE, 'w', encoding='utf-8') as f:
-        f.write(str(n) + '\n')
-        f.write(str(d) + '\n')
-    print("RSA ключі згенеровано (public_keys.txt / private_keys.txt).")
+        f.write(f"{n}\n{d}\n")
+
+    print(f"RSA ключі згенеровано (public_keys.txt / private_keys.txt). n має {num_decimal_digits(n)} цифр.")
     log_action('system', 'choose_keys')
     return True
 
