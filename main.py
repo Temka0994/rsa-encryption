@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # ----------------- Параметри варіанту ---------------
 N = 10  # макс користувачів
 a = 4  # коефіцієнт в F(x) = e^(a*x)
-T = 1  # час життя токена у хвилинах
+T = 5  # час життя токена у хвилинах
 # ----------------------------------------------------
 
 NAMEUSER_FILE = 'nameuser.txt'
@@ -29,7 +29,7 @@ user_rights = ''
 
 def ensure_files():
     """Створює файли, якщо їх немає та заповнює ask.txt"""
-    for fname in [NAMEUSER_FILE, USBOOK_FILE, OUT_FILE]:
+    for fname in [NAMEUSER_FILE, USBOOK_FILE]:
         if not os.path.exists(fname):
             open(fname, 'a', encoding='utf-8').close()
 
