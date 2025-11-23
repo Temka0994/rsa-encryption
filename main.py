@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 N = 10  # макс користувачів
 a = 4  # коефіцієнт в F(x) = e^(a*x)
 T = 5  # час життя токена у хвилинах
-R = 12 # кількість необхідних цифр в ключах
+R = 12  # кількість необхідних цифр в ключах
 # ----------------------------------------------------
 
 NAMEUSER_FILE = 'nameuser.txt'
@@ -288,6 +288,7 @@ def num_decimal_digits(n: int) -> int:
     """Повертає кількість десяткових цифр в n (n > 0)."""
     return len(str(n))
 
+
 def choose_keys():
     """
     Обирає p, q з PRIMES_FILE такі, щоб n = p*q мав рівно R десяткових знаків.
@@ -305,8 +306,8 @@ def choose_keys():
         print("Недостатньо простих чисел у файлі.")
         return False
 
-    lower = 10**(R - 1)
-    upper = 10**R - 1
+    lower = 10 ** (R - 1)
+    upper = 10 ** R - 1
 
     indices = list(range(len(primes)))
     random.shuffle(indices)
